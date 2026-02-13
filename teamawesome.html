@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Thai Consonant Drill</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --border:#e7e7ee;
+      --text:#111318;
+      --muted:#6b7280;
+      --btn:#e9ecef;
+      --btnText:#2b2f36;
+      --ok:#1f8a3b;
+      --bad:#d13b3b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      display:flex;
+      min-height:100vh;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .card{
+      width: 380px;
+      max-width: 92vw;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow: 0 12px 30px rgba(17,19,24,.08);
+      padding:18px 18px 16px;
+    }
+    .center{ text-align:center; }
+    .hearts{
+      font-size:16px;
+      letter-spacing:2px;
+      margin:2px 0 10px;
+      user-select:none;
+    }
+    .title{
+      font-weight:700;
+      margin:0;
+      font-size:16px;
+    }
+    .subtitle{
+      margin:4px 0 14px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .big{
+      font-size:86px;
+      line-height:1;
+      margin:10px 0 14px;
+      font-weight:700;
+    }
+    .btnPrimary{
+      border:none;
+      border-radius:8px;
+      padding:10px 14px;
+      background:#1976d2;
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btnPrimary:active{ transform: scale(.99); }
+
+    .choices{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin: 0 0 10px;
+    }
+    .choice{
+      border:1px solid var(--border);
+      background:var(--btn);
+      color:var(--btnText);
+      border-radius:6px;
+      padding:10px 12px;
+      font-size:13px;
+      cursor:pointer;
+      text-transform: lowercase;
+    }
+    .choice:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .feedback{
+      margin-top:10px;
+      font-size:13px;
+      min-height:44px;
+    }
+    .ok{ color:var(--ok); font-weight:700; }
+    .bad{ color:var(--bad); font-weight:700; }
+    .thaiLine{
+      margin-top:6px;
+      font-size:14px;
+      color:#1f2937;
+    }
+    .gameOver{
+      margin-top:6px;
+      font-size:16px;
+      font-weight:800;
+      color:var(--bad);
+    }
+    .foot{
+      margin-top:10px;
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .btnGhost{
+      border:1px solid var(--border);
+      background:white;
+      color:#111;
+      border-radius:8px;
+      padding:9px 12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="app"></div>
+
+<script>
+/*** CHANGE THIS to your real team name (instead of Team X) ***/
+const TEAM_NAME = "Team Awesome";
+
+/**
+ * 44 Thai consonants
+ * - letter: consonant
+ * - thai: Thai letter name (like "กอ ไก่") — includes the common “อ” sound used when naming consonants
+ * - roman: simple roman label shown as choices (like the PDF example: "jor jan", "wor waen")
+ */
+const CONSONANTS = [
+  {letter:"ก", thai:"กอ ไก่", roman:"kor kai"},
+  {letter:"ข", thai:"ขอ ไข่", roman:"khor khai"},
+  {letter:"ฃ", thai:"ฃอ ขวด", roman:"khor khuat"},
+  {letter:"ค", thai:"คอ ควาย", roman:"khor khwai"},
+  {letter:"ฅ", thai:"ฅอ คน", roman:"khor khon"},
+  {letter:"ฆ", thai:"ฆอ ระฆัง", roman:"khor ra-khang"},
+  {letter:"ง", thai:"งอ งู", roman:"ngor ngu"},
+  {letter:"จ", thai:"จอ จาน", roman:"jor jan"},
+  {letter:"ฉ", thai:"ฉอ ฉิ่ง", roman:"chor ching"},
+  {letter:"ช", thai:"ชอ ช้าง", roman:"chor chang"},
+  {letter:"ซ", thai:"ซอ โซ่", roman:"sor so"},
+  {letter:"ฌ", thai:"ฌอ เฌอ", roman:"chor choe"},
+  {letter:"ญ", thai:"ญอ หญิง", roman:"yor ying"},
+  {letter:"ฎ", thai:"ฎอ ชฎา", roman:"dor cha-da"},
+  {letter:"ฏ", thai:"ฏอ ปฏัก", roman:"tor pa-tak"},
+  {letter:"ฐ", thai:"ฐอ ฐาน", roman:"thor than"},
+  {letter:"ฑ", thai:"ฑอ มณโฑ", roman:"thor mon-tho"},
+  {letter:"ฒ", thai:"ฒอ ผู้เฒ่า", roman:"thor phu-thao"},
+  {letter:"ณ", thai:"ณอ เณร", roman:"nor nen"},
+  {letter:"ด", thai:"ดอ เด็ก", roman:"dor dek"},
+  {letter:"ต", thai:"ตอ เต่า", roman:"tor tao"},
+  {letter:"ถ", thai:"ถอ ถุง", roman:"thor thung"},
+  {letter:"ท", thai:"ทอ ทหาร", roman:"thor tha-han"},
+  {letter:"ธ", thai:"ธอ ธง", roman:"thor thong"},
+  {letter:"น", thai:"นอ หนู", roman:"nor nu"},
+  {letter:"บ", thai:"บอ ใบไม้", roman:"bor bai-mai"},
+  {letter:"ป", thai:"ปอ ปลา", roman:"por pla"},
+  {letter:"ผ", thai:"ผอ ผึ้ง", roman:"phor phueng"},
+  {letter:"ฝ", thai:"ฝอ ฝา", roman:"for fa"},
+  {letter:"พ", thai:"พอ พาน", roman:"phor phan"},
+  {letter:"ฟ", thai:"ฟอ ฟัน", roman:"for fan"},
+  {letter:"ภ", thai:"ภอ สำเภา", roman:"phor sam-phao"},
+  {letter:"ม", thai:"มอ ม้า", roman:"mor ma"},
+  {letter:"ย", thai:"ยอ ยักษ์", roman:"yor yak"},
+  {letter:"ร", thai:"รอ เรือ", roman:"ror ruea"},
+  {letter:"ล", thai:"ลอ ลิง", roman:"lor ling"},
+  {letter:"ว", thai:"วอ แหวน", roman:"wor waen"},
+  {letter:"ศ", thai:"ศอ ศาลา", roman:"sor sa-la"},
+  {letter:"ษ", thai:"ษอ ฤๅษี", roman:"sor rue-si"},
+  {letter:"ส", thai:"สอ เสือ", roman:"sor suea"},
+  {letter:"ห", thai:"หอ หีบ", roman:"hor hip"},
+  {letter:"ฬ", thai:"ฬอ จุฬา", roman:"lor chu-la"},
+  {letter:"อ", thai:"ออ อ่าง", roman:"or ang"},
+  {letter:"ฮ", thai:"ฮอ นกฮูก", roman:"hor nok-huk"},
+];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function pickChoices(correct, size=3){
+  const others = CONSONANTS.filter(c=>c.letter!==correct.letter);
+  const sample = shuffle(others).slice(0, Math.max(0,size-1));
+  return shuffle([correct, ...sample]);
+}
+
+const state = {
+  screen: "home", // home | quiz | over
+  hearts: 3,
+  current: null,
+  choices: [],
+  locked: false,
+  feedback: null,  // {type:"ok"|"bad", text:"...", thaiLine:"..."}
+};
+
+const app = document.getElementById("app");
+
+function heartsStr(n){
+  return "💗".repeat(Math.max(0,n));
+}
+
+function newQuestion(){
+  state.current = CONSONANTS[Math.floor(Math.random()*CONSONANTS.length)];
+  state.choices = pickChoices(state.current, 3); // PDF shows 3 options
+  state.locked = false;
+  state.feedback = null;
+}
+
+function startQuiz(){
+  state.screen = "quiz";
+  state.hearts = 3;
+  newQuestion();
+  render();
+}
+
+function goHome(){
+  state.screen = "home";
+  state.hearts = 3;
+  state.current = null;
+  state.choices = [];
+  state.locked = false;
+  state.feedback = null;
+  render();
+}
+
+function gameOver(){
+  state.screen = "over";
+  state.locked = true;
+  render();
+}
+
+function onPick(roman){
+  if(state.locked) return;
+  state.locked = true;
+
+  const correct = (roman === state.current.roman);
+
+  if(correct){
+    state.feedback = {
+      type:"ok",
+      text:"✓ Correct",
+      thaiLine:`${state.current.letter}  ${state.current.thai}`
+    };
+    render();
+    setTimeout(()=>{
+      newQuestion();
+      render();
+    }, 900);
+  }else{
+    state.hearts -= 1;
+    state.feedback = { type:"bad", text:"✗ Incorrect", thaiLine:"" };
+    render();
+
+    setTimeout(()=>{
+      if(state.hearts <= 0){
+        state.hearts = 0;
+        gameOver();
+      } else {
+        newQuestion();
+        render();
+      }
+    }, 900);
+  }
+}
+
+function renderHome(){
+  app.innerHTML = `
+    <div class="center">
+      <div style="height:10px"></div>
+      <div class="title">CSII ${escapeHtml(TEAM_NAME)} presents</div>
+      <div class="subtitle">Thai Consonants</div>
+      <div style="height:8px"></div>
+      <button class="btnPrimary" id="startBtn">Start Quiz</button>
+    </div>
+  `;
+  document.getElementById("startBtn").onclick = startQuiz;
+}
+
+function renderQuiz(){
+  const h = heartsStr(state.hearts);
+  const letter = state.current?.letter ?? "";
+  const choicesHtml = state.choices.map(c => `
+    <button class="choice" ${state.locked ? "disabled":""} data-roman="${escapeAttr(c.roman)}">
+      ${escapeHtml(c.roman)}
+    </button>
+  `).join("");
+
+  const fb = state.feedback
+    ? `<div class="feedback">
+         <div class="${state.feedback.type}">${escapeHtml(state.feedback.text)}</div>
+         ${state.feedback.thaiLine ? `<div class="thaiLine">${escapeHtml(state.feedback.thaiLine)}</div>` : ``}
+       </div>`
+    : `<div class="feedback"></div>`;
+
+  app.innerHTML = `
+    <div class="center">
+      <div class="hearts">${h || "&nbsp;"}</div>
+      <div class="title">Thai Consonant Drill</div>
+      <div class="big">${escapeHtml(letter)}</div>
+
+      <div class="choices" id="choices">
+        ${choicesHtml}
+      </div>
+
+      ${fb}
+
+      <div class="row">
+        <button class="btnGhost" id="quitBtn">Quit</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("quitBtn").onclick = goHome;
+  document.querySelectorAll(".choice").forEach(btn=>{
+    btn.onclick = () => onPick(btn.getAttribute("data-roman"));
+  });
+}
+
+function renderOver(){
+  const letter = state.current?.letter ?? "—";
+  app.innerHTML = `
+    <div class="center">
+      <div class="hearts">${heartsStr(state.hearts) || "&nbsp;"}</div>
+      <div class="title">Thai Consonant Drill</div>
+      <div class="big">${escapeHtml(letter)}</div>
+
+      <div class="choices">
+        ${state.choices.map(c => `
+          <button class="choice" disabled>${escapeHtml(c.roman)}</button>
+        `).join("")}
+      </div>
+
+      <div class="feedback">
+        <div class="bad">✗ Incorrect</div>
+        <div class="gameOver">Game Over</div>
+      </div>
+
+      <div class="row">
+        <button class="btnPrimary" id="againBtn">Play Again</button>
+        <button class="btnGhost" id="homeBtn">Home</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("againBtn").onclick = startQuiz;
+  document.getElementById("homeBtn").onclick = goHome;
+}
+
+function render(){
+  if(state.screen === "home") return renderHome();
+  if(state.screen === "quiz") return renderQuiz();
+  return renderOver();
+}
+
+function escapeHtml(s){
+  return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+function escapeAttr(s){
+  return escapeHtml(s).replaceAll('"',"&quot;");
+}
+
+// init
+render();
+</script>
+</body>
+</html>
