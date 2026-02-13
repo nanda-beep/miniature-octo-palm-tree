@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai Consonant Drill - Sledgehammers</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 380px; text-align: center; min-height: 480px; display: flex; flex-direction: column; position: relative; }
+        h1 { font-size: 1.4rem; margin-top: 1rem; margin-bottom: 0.5rem; color: #333; }
+        .sub-title { color: #666; margin-bottom: 1.5rem; }
+        .hearts { color: #ff4d4d; font-size: 1.5rem; margin-bottom: 0.5rem; height: 35px; }
+        .consonant-display { font-size: 6rem; margin: 0.2rem 0; font-weight: bold; color: #222; }
+        .options-container { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1rem; font-weight: 500; }
+        .btn-primary { background-color: #007bff; color: white; width: 100%; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-option { background-color: #f0f2f5; color: #333; border: 1px solid #ddd; }
+        .btn-option:hover:not(:disabled) { background-color: #e2e6ea; border-color: #bbb; }
+        .btn-quit { background: none; color: #999; font-size: 0.85rem; margin-top: 20px; text-decoration: underline; border: none; }
+        .btn-restart { background-color: #28a745; color: white; margin-top: 15px; width: 100%; }
+        
+        .feedback { margin-top: 1rem; font-weight: bold; min-height: 70px; }
+        .correct { color: #28a745; font-size: 1.1rem; }
+        .incorrect { color: #dc3545; font-size: 1.1rem; }
+        .reveal-answer { color: #444; font-size: 1rem; margin-top: 6px; font-weight: normal; }
+        .game-over-text { color: #dc3545; font-size: 2rem; font-weight: bold; margin-bottom: 15px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="card">
+        <h1>CSII Sledgehammers presents</h1>
+        <p class="sub-title">Thai Consonants (All 44)</p>
+        <button class="btn-primary" onclick="startGame()">Start Quiz</button>
+    </div>
+
+    <div id="game-screen" class="card hidden">
+        <div id="hearts" class="hearts">❤️❤️❤️</div>
+        <div id="consonant" class="consonant-display"></div>
+        
+        <div id="quiz-content">
+            <div id="options" class="options-container"></div>
+            <div id="feedback" class="feedback"></div>
+            <button class="btn-quit" onclick="goHome()">Quit Game</button>
+        </div>
+
+        <div id="game-over-ui" class="hidden">
+            <div class="game-over-text">Game Over</div>
+            <div id="final-score" style="margin-bottom: 20px; color: #555;"></div>
+            <button class="btn-restart" onclick="startGame()">Try Again</button>
+            <button class="btn-quit" onclick="goHome()">Back to Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const consonants = [
+            { char: 'ก', name: 'gor gai', full: 'ก ไก่' }, { char: 'ข', name: 'khor khai', full: 'ข ไข่' },
+            { char: 'ฃ', name: 'khor khuat', full: 'ฃ ขวด' }, { char: 'ค', name: 'khor khwai', full: 'ค ควาย' },
+            { char: 'ฅ', name: 'khor khon', full: 'ฅ คน' }, { char: 'ฆ', name: 'khor rakhang', full: 'ฆ ระฆัง' },
+            { char: 'ง', name: 'ngor ngu', full: 'ง งู' }, { char: 'จ', name: 'jor jan', full: 'จ จาน' },
+            { char: 'ฉ', name: 'chor ching', full: 'ฉ ฉิ่ง' }, { char: 'ช', name: 'chor chang', full: 'ช ช้าง' },
+            { char: 'ซ', name: 'sor so', full: 'ซ โซ่' }, { char: 'ฌ', name: 'chor choe', full: 'ฌ เฌอ' },
+            { char: 'ญ', name: 'yor ying', full: 'ญ หญิง' }, { char: 'ฎ', name: 'dor chada', full: 'ฎ ชฎา' },
+            { char: 'ฏ', name: 'tor patak', full: 'ฏ ปฏัก' }, { char: 'ฐ', name: 'thor than', full: 'ฐ ฐาน' },
+            { char: 'ฑ', name: 'thor montho', full: 'ฑ มณโฑ' }, { char: 'ฒ', name: 'thor phu-thao', full: 'ฒ ผู้เฒ่า' },
+            { char: 'ณ', name: 'nor nen', full: 'ณ เณร' }, { char: 'ด', name: 'dor dek', full: 'ด เด็ก' },
+            { char: 'ต', name: 'tor tao', full: 'ต เต่า' }, { char: 'ถ', name: 'thor thung', full: 'ถ ถุง' },
+            { char: 'ท', name: 'thor thahan', full: 'ท ทหาร' }, { char: 'ธ', name: 'thor thong', full: 'ธ ธง' },
+            { char: 'น', name: 'nor nu', full: 'น หนู' }, { char: 'บ', name: 'bor baimai', full: 'บ ใบไม้' },
+            { char: 'ป', name: 'por pla', full: 'ป ปลา' }, { char: 'ผ', name: 'phor phueng', full: 'ผ ผึ้ง' },
+            { char: 'ฝ', name: 'for fa', full: 'ฝ ฝา' }, { char: 'พ', name: 'phor phan', full: 'พ พาน' },
+            { char: 'ฟ', name: 'for fan', full: 'ฟ ฟัน' }, { char: 'ภ', name: 'phor sam-phao', full: 'ภ สำเภา' },
+            { char: 'ม', name: 'mor ma', full: 'ม ม้า' }, { char: 'ย', name: 'yor yak', full: 'ย ยักษ์' },
+            { char: 'ร', name: 'ror ruea', full: 'ร เรือ' }, { char: 'ล', name: 'lor ling', full: 'ล ลิง' },
+            { char: 'ว', name: 'wor waen', full: 'ว แหวน' }, { char: 'ศ', name: 'sor sala', full: 'ศ ศาลา' },
+            { char: 'ษ', name: 'sor rue-si', full: 'ษ ฤๅษี' }, { char: 'ส', name: 'sor suea', full: 'ส เสือ' },
+            { char: 'ห', name: 'hor hip', full: 'ห หีบ' }, { char: 'ฬ', name: 'lor chu-la', full: 'ฬ จุฬา' },
+            { char: 'อ', name: 'or ang', full: 'อ อ่าง' }, { char: 'ฮ', name: 'hor nok-huk', full: 'ฮ นกฮูก' }
+        ];
+
+        let currentQuestion = {};
+        let lives = 3;
+        let score = 0;
+        let isAnswering = true;
+
+        function startGame() {
+            lives = 3;
+            score = 0;
+            isAnswering = true;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('quiz-content').classList.remove('hidden');
+            document.getElementById('game-over-ui').classList.add('hidden');
+            nextQuestion();
+        }
+
+        function goHome() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        function updateHearts() {
+            document.getElementById('hearts').innerText = lives > 0 ? '❤️'.repeat(lives) : '🖤🖤🖤';
+        }
+
+        function nextQuestion() {
+            if (lives <= 0) return;
+            isAnswering = true;
+            document.getElementById('feedback').innerHTML = '';
+            updateHearts();
+
+            currentQuestion = consonants[Math.floor(Math.random() * consonants.length)];
+            document.getElementById('consonant').innerText = currentQuestion.char;
+
+            let options = [currentQuestion];
+            while (options.length < 3) {
+                let randomOption = consonants[Math.floor(Math.random() * consonants.length)];
+                if (!options.find(o => o.char === randomOption.char)) options.push(randomOption);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt.name;
+                btn.onclick = () => checkAnswer(opt);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected) {
+            if (!isAnswering) return;
+            isAnswering = false;
+
+            const feedbackDiv = document.getElementById('feedback');
+            const buttons = document.querySelectorAll('.btn-option');
+            buttons.forEach(b => b.disabled = true);
+
+            if (selected.char === currentQuestion.char) {
+                score++;
+                feedbackDiv.innerHTML = `<div class="correct">✓ Correct</div><div class="reveal-answer">${currentQuestion.full}</div>`;
+                setTimeout(nextQuestion, 1200);
+            } else {
+                lives--;
+                updateHearts();
+                feedbackDiv.innerHTML = `<div class="incorrect">✗ Incorrect</div><div class="reveal-answer">Correct: ${currentQuestion.full} (${currentQuestion.name})</div>`;
+                if (lives <= 0) {
+                    setTimeout(showGameOver, 2000);
+                } else {
+                    setTimeout(nextQuestion, 2000);
+                }
+            }
+        }
+
+        function showGameOver() {
+            document.getElementById('quiz-content').classList.add('hidden');
+            document.getElementById('game-over-ui').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `You correctly identified ${score} consonants!`;
+        }
+    </script>
+</body>
+</html>
