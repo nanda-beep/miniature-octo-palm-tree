@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai Consonant Drill - Sledgehammers</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center; min-height: 420px; display: flex; flex-direction: column; justify-content: center; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .sub-title { color: #666; margin-bottom: 2rem; }
+        .hearts { color: #ff4d4d; font-size: 1.5rem; margin-bottom: 1rem; height: 30px; }
+        .consonant-display { font-size: 5rem; margin: 1rem 0; font-weight: bold; }
+        .options-container { display: flex; flex-direction: column; gap: 10px; }
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1rem; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-option { background-color: #e9ecef; color: #333; }
+        .btn-option:hover { background-color: #dee2e6; }
+        .feedback { margin-top: 1rem; font-weight: bold; min-height: 60px; line-height: 1.4; }
+        .correct { color: #28a745; }
+        .incorrect { color: #dc3545; }
+        .reveal-answer { color: #333; font-size: 0.9rem; margin-top: 4px; }
+        .game-over { color: #dc3545; font-size: 1.5rem; font-weight: bold; margin-top: 10px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="card">
+        <h1>CSII Sledgehammers presents</h1>
+        <p class="sub-title">Thai Consonants</p>
+        <button class="btn-primary" onclick="startGame()">Start Quiz</button>
+    </div>
+
+    <div id="game-screen" class="card hidden">
+        <div id="hearts" class="hearts">❤️❤️❤️</div>
+        <h3>Thai Consonant Drill</h3>
+        <div id="consonant" class="consonant-display"></div>
+        <div id="options" class="options-container"></div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <script>
+        // Expanded list for variety
+        const consonants = [
+            { char: 'ก', name: 'gor gai', full: 'ก ไก่' },
+            { char: 'ข', name: 'khor khai', full: 'ข ไข่' },
+            { char: 'จ', name: 'jor jan', full: 'จ จาน' },
+            { char: 'ว', name: 'wor waen', full: 'ว แหวน' },
+            { char: 'ร', name: 'ror ruea', full: 'ร เรือ' },
+            { char: 'ฮ', name: 'hor nok-huk', full: 'ฮ นกฮูก' },
+            { char: 'ฉ', name: 'chor ching', full: 'ฉ ฉิ่ง' },
+            { char: 'พ', name: 'phor phan', full: 'พ พาน' },
+            { char: 'ส', name: 'sor suea', full: 'ส เสือ' },
+            { char: 'ด', name: 'dor dek', full: 'ด เด็ก' },
+            { char: 'ต', name: 'tor tao', full: 'ต เต่า' }
+        ];
+
+        let currentQuestion = {};
+        let lives = 3;
+        let isAnswering = true;
+
+        function startGame() {
+            lives = 3;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            nextQuestion();
+        }
+
+        function updateHearts() {
+            document.getElementById('hearts').innerText = lives > 0 ? '❤️'.repeat(lives) : '';
+        }
+
+        function nextQuestion() {
+            if (lives <= 0) return;
+            
+            isAnswering = true;
+            document.getElementById('feedback').innerHTML = '';
+            updateHearts();
+
+            // Select a target character
+            currentQuestion = consonants[Math.floor(Math.random() * consonants.length)];
+            document.getElementById('consonant').innerText = currentQuestion.char;
+
+            // Pick 2 random wrong options
+            let options = [currentQuestion];
+            while (options.length < 3) {
+                let randomOption = consonants[Math.floor(Math.random() * consonants.length)];
+                if (!options.find(o => o.char === randomOption.char)) {
+                    options.push(randomOption);
+                }
+            }
+            // Shuffle options
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt.name;
+                btn.onclick = () => checkAnswer(opt);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected) {
+            if (!isAnswering) return;
+            isAnswering = false;
+
+            const feedbackDiv = document.getElementById('feedback');
+            
+            if (selected.char === currentQuestion.char) {
+                // User got it right
+                feedbackDiv.innerHTML = `
+                    <div class="correct">✓ Correct</div>
+                    <div class="reveal-answer">${currentQuestion.full}</div>
+                `;
+                setTimeout(nextQuestion, 1800);
+            } else {
+                // User got it wrong
+                lives--;
+                updateHearts();
+                
+                feedbackDiv.innerHTML = `
+                    <div class="incorrect">✗ Incorrect</div>
+                    <div class="reveal-answer">Correct answer: ${currentQuestion.full} (${currentQuestion.name})</div>
+                `;
+                
+                if (lives <= 0) {
+                    // Out of lives
+                    setTimeout(() => {
+                        feedbackDiv.innerHTML += `<div class="game-over">Game Over</div>`;
+                        setTimeout(() => {
+                            document.getElementById('game-screen').classList.add('hidden');
+                            document.getElementById('start-screen').classList.remove('hidden');
+                        }, 2500);
+                    }, 500);
+                } else {
+                    // Still has lives, move to next after delay
+                    setTimeout(nextQuestion, 2500);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
