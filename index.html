@@ -26,6 +26,7 @@
         .reveal-answer { color: #444; font-size: 1rem; margin-top: 6px; font-weight: normal; }
         .game-over-text { color: #dc3545; font-size: 2rem; font-weight: bold; margin-bottom: 15px; }
         .hidden { display: none !important; }
+        .counter { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -38,6 +39,7 @@
 
     <div id="game-screen" class="card hidden">
         <div id="hearts" class="hearts">❤️❤️❤️</div>
+        <div id="counter" class="counter"></div>
         <div id="consonant" class="consonant-display"></div>
         
         <div id="quiz-content">
@@ -84,11 +86,13 @@
         let lives = 3;
         let score = 0;
         let isAnswering = true;
+        let answeredConsonants = new Set();
 
         function startGame() {
             lives = 3;
             score = 0;
             isAnswering = true;
+            answeredConsonants = new Set();
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('quiz-content').classList.remove('hidden');
@@ -105,13 +109,28 @@
             document.getElementById('hearts').innerText = lives > 0 ? '❤️'.repeat(lives) : '🖤🖤🖤';
         }
 
+        function updateCounter() {
+            const remaining = consonants.length - answeredConsonants.size;
+            document.getElementById('counter').innerText = `${answeredConsonants.size} / ${consonants.length}`;
+        }
+
         function nextQuestion() {
             if (lives <= 0) return;
+            
+            // Check if all consonants have been answered correctly
+            if (answeredConsonants.size === consonants.length) {
+                setTimeout(showGameOver, 500);
+                return;
+            }
+            
             isAnswering = true;
             document.getElementById('feedback').innerHTML = '';
             updateHearts();
+            updateCounter();
 
-            currentQuestion = consonants[Math.floor(Math.random() * consonants.length)];
+            // Filter consonants to only include unanswered ones
+            const unansweredConsonants = consonants.filter(c => !answeredConsonants.has(c.char));
+            currentQuestion = unansweredConsonants[Math.floor(Math.random() * unansweredConsonants.length)];
             document.getElementById('consonant').innerText = currentQuestion.char;
 
             let options = [currentQuestion];
@@ -141,6 +160,7 @@
             buttons.forEach(b => b.disabled = true);
 
             if (selected.char === currentQuestion.char) {
+                answeredConsonants.add(currentQuestion.char);
                 score++;
                 feedbackDiv.innerHTML = `<div class="correct">✓ Correct</div><div class="reveal-answer">${currentQuestion.full}</div>`;
                 setTimeout(nextQuestion, 1200);
@@ -159,7 +179,11 @@
         function showGameOver() {
             document.getElementById('quiz-content').classList.add('hidden');
             document.getElementById('game-over-ui').classList.remove('hidden');
-            document.getElementById('final-score').innerText = `You correctly identified ${score} consonants!`;
+            if (answeredConsonants.size === consonants.length) {
+                document.getElementById('final-score').innerText = `Perfect! You learned all ${consonants.length} consonants!`;
+            } else {
+                document.getElementById('final-score').innerText = `You correctly identified ${score} consonants! Remember: ${answeredConsonants.size} / ${consonants.length}`;
+            }
         }
     </script>
 </body>
