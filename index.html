@@ -34,10 +34,13 @@
     <div id="start-screen" class="card">
         <h1>CSII Sledgehammers presents</h1>
         <p class="sub-title">Thai Consonants (All 44)</p>
+        <input type="text" id="nickname-input" placeholder="Enter your nickname" style="padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; width: calc(100% - 22px); box-sizing: border-box;">
         <button class="btn-primary" onclick="startGame()">Start Quiz</button>
     </div>
 
     <div id="game-screen" class="card hidden">
+        <div id="nickname-display" style="color: #007bff; font-size: 0.9rem; margin-bottom: 10px; font-weight: bold;"></div>
+        <div id="quiz-start-counter" style="color: #666; font-size: 0.85rem; margin-bottom: 8px;"></div>
         <div id="hearts" class="hearts">❤️❤️❤️</div>
         <div id="counter" class="counter"></div>
         <div id="consonant" class="consonant-display"></div>
@@ -82,13 +85,41 @@
             { char: 'อ', name: 'or ang', full: 'อ อ่าง' }, { char: 'ฮ', name: 'hor nok-huk', full: 'ฮ นกฮูก' }
         ];
 
+        const API_BASE_URL = 'http://localhost:5000';
+        
         let currentQuestion = {};
         let lives = 3;
         let score = 0;
         let isAnswering = true;
         let answeredConsonants = new Set();
+        let userNickname = '';
+        let quizStarts = 0;
 
-        function startGame() {
+        async function startGame() {
+            userNickname = document.getElementById('nickname-input').value || 'Player';
+            
+            try {
+                // Call backend API to increment quiz start counter
+                const response = await fetch(`${API_BASE_URL}/api/quiz/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nickname: userNickname })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    quizStarts = data.quiz_starts;
+                } else {
+                    console.warn('Failed to increment quiz counter');
+                    quizStarts = 0;
+                }
+            } catch (error) {
+                console.warn('Could not reach backend API:', error);
+                quizStarts = 0;
+            }
+            
             lives = 3;
             score = 0;
             isAnswering = true;
@@ -97,6 +128,8 @@
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('quiz-content').classList.remove('hidden');
             document.getElementById('game-over-ui').classList.add('hidden');
+            document.getElementById('nickname-display').innerText = userNickname;
+            document.getElementById('quiz-start-counter').innerText = `Quizzes started: ${quizStarts}`;
             nextQuestion();
         }
 
