@@ -1,12 +1,18 @@
 import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Database connection configuration
 DB_HOST = os.getenv('DB_HOST', 'localhost')
@@ -52,13 +58,13 @@ def init_db():
         print(f"Error initializing database: {e}")
 
 
-@app.route('/health', methods=['GET'])
+@app.get("/health")
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'ok'}), 200
+    return {"status": "ok"})
 
 
-@app.route('/api/quiz/start', methods=['POST'])
+@app.post("/api/quiz/start")
 def start_quiz():
     """
     Increment the quiz start counter for a user
@@ -99,7 +105,7 @@ def start_quiz():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/quiz/stats/<nickname>', methods=['GET'])
+@app.get("/api/quiz/stats/{nickname}")
 def get_user_stats(nickname):
     """
     Get quiz statistics for a user
