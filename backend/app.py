@@ -69,7 +69,7 @@ def start_quiz():
         nickname = data.get('nickname', '').strip()
         
         if not nickname:
-            return jsonify({'error': 'Nickname is required'}), 400
+            return {'error': 'Nickname is required'}, 400
         
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -88,14 +88,14 @@ def start_quiz():
         cur.close()
         conn.close()
         
-        return jsonify({
+        return {
             'nickname': result['nickname'],
             'quiz_starts': result['quiz_starts']
-        }), 200
+        }, 200
     
     except Exception as e:
         print(f"Error in /api/quiz/start: {e}")
-        return jsonify({'error': str(e)}), 500
+        return {'error': str(e)}, 500
 
 
 @app.get("/api/quiz/stats/{nickname}")
@@ -117,16 +117,16 @@ def get_user_stats(nickname):
         conn.close()
         
         if result:
-            return jsonify({
+            return {
                 'nickname': result['nickname'],
                 'quiz_starts': result['quiz_starts']
-            }), 200
+            }, 200
         else:
-            return jsonify({'error': 'User not found'}), 404
+            return {'error': 'User not found'}, 404
     
     except Exception as e:
         print(f"Error in /api/quiz/stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return {'error': str(e)}, 500
 
 
 if __name__ == '__main__':
