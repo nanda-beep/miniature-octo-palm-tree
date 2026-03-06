@@ -54,7 +54,7 @@ def init_db():
 @app.get("/health")
 def health():
     """Health check endpoint"""
-    return {"status": "ok"})
+    return {"status": "ok"}
 
 
 @app.post("/api/quiz/start")
