@@ -23,14 +23,7 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', 'quiz_password')
 
 
 def get_db_connection():
-    """Create and return a database connection"""
-    return psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
-    )
+    return psycopg2.connect(os.environ.get('DATABASE_URL'))
 
 
 def init_db():
