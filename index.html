@@ -97,9 +97,8 @@
 
         async function startGame() {
             userNickname = document.getElementById('nickname-input').value || 'Player';
-            
+
             try {
-                // Call backend API to increment quiz start counter
                 const response = await fetch(`${API_BASE_URL}/api/quiz/start`, {
                     method: 'POST',
                     headers: {
@@ -107,29 +106,31 @@
                     },
                     body: JSON.stringify({ nickname: userNickname })
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
-                    quizStarts = data.quiz_starts;
+                    quizStarts = data.counter;   // FIXED HERE
                 } else {
                     console.warn('Failed to increment quiz counter');
                     quizStarts = 0;
                 }
+
             } catch (error) {
                 console.warn('Could not reach backend API:', error);
                 quizStarts = 0;
             }
-            
+
             lives = 3;
             score = 0;
             isAnswering = true;
             answeredConsonants = new Set();
+
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             document.getElementById('quiz-content').classList.remove('hidden');
             document.getElementById('game-over-ui').classList.add('hidden');
-            document.getElementById('nickname-display').innerText = userNickname;
-            document.getElementById('quiz-start-counter').innerText = `Quizzes started: ${quizStarts}`;
+
+            document.getElementById('nickname-display').innerText =`${userNickname} (Quiz #${quizStarts})`;
             nextQuestion();
         }
 
