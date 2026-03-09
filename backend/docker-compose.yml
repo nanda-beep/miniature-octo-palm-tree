@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+
   postgres:
     image: postgres
     environment:
@@ -16,6 +17,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://quiz_user:quiz_password@postgres:5432/quiz_db
+    depends_on:
+      - postgres
 
 volumes:
   postgres_data:
