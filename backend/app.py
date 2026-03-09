@@ -6,6 +6,9 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime
 
 app = FastAPI()
+@app.on_event("startup")
+def startup():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,46 +59,37 @@ def health():
     """Health check endpoint"""
     return {"status": "ok"}
 
-
 @app.post("/api/quiz/start")
-def start_quiz():
-    """
-    Increment the quiz start counter for a user
-    Expected JSON: { "nickname": "PlayerName" }
-    Returns: { "quiz_starts": 5, "nickname": "PlayerName" }
-    """
-    try:
-        data = request.get_json()
-        nickname = data.get('nickname', '').strip()
-        
-        if not nickname:
-            return {'error': 'Nickname is required'}, 400
-        
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Try to update existing user, if not found, insert new user
-        cur.execute('''
-            INSERT INTO users (nickname, quiz_starts, created_at, updated_at)
-            VALUES (%s, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT (nickname) DO UPDATE
-            SET quiz_starts = quiz_starts + 1, updated_at = CURRENT_TIMESTAMP
-            RETURNING nickname, quiz_starts
-        ''', (nickname,))
-        
-        result = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        return {
-            'nickname': result['nickname'],
-            'quiz_starts': result['quiz_starts']
-        }, 200
-    
-    except Exception as e:
-        print(f"Error in /api/quiz/start: {e}")
-        return {'error': str(e)}, 500
+async def start_quiz(request: Request):
+
+    data = await request.json()
+    nickname = data.get("nickname", "").strip()
+
+    if not nickname:
+        return {"error": "Nickname is required"}
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        INSERT INTO users (nickname, quiz_starts, created_at, updated_at)
+        VALUES (%s, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT (nickname) DO UPDATE
+        SET quiz_starts = users.quiz_starts + 1,
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING nickname, quiz_starts
+    """, (nickname,))
+
+    result = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        "nickname": result["nickname"],
+        "quiz_starts": result["quiz_starts"]
+    }
 
 
 @app.get("/api/quiz/stats/{nickname}")
