@@ -1,14 +1,11 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from datetime import datetime
 
 app = FastAPI()
-@app.on_event("startup")
-def startup():
-    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,26 +14,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database connection configuration
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'quiz_db')
-DB_USER = os.getenv('DB_USER', 'quiz_user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'quiz_password')
-
+class QuizStartRequest(BaseModel):
+    nickname: str
 
 def get_db_connection():
-    return psycopg2.connect(os.environ.get('DATABASE_URL'))
-
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise Exception("DATABASE_URL is not set")
+    return psycopg2.connect(database_url)
 
 def init_db():
-    """Initialize the database with required tables"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
-        # Create users table if it doesn't exist
-        cur.execute('''
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 nickname VARCHAR(255) UNIQUE NOT NULL,
@@ -44,8 +36,8 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
-        
+        """)
+
         conn.commit()
         cur.close()
         conn.close()
@@ -53,76 +45,74 @@ def init_db():
     except Exception as e:
         print(f"Error initializing database: {e}")
 
+@app.on_event("startup")
+def startup():
+    init_db()
 
 @app.get("/health")
 def health():
-    """Health check endpoint"""
     return {"status": "ok"}
 
 @app.post("/api/quiz/start")
-async def start_quiz(request: Request):
-
-    data = await request.json()
-    nickname = data.get("nickname", "").strip()
+def start_quiz(payload: QuizStartRequest):
+    nickname = payload.nickname.strip()
 
     if not nickname:
-        return {"error": "Nickname is required"}
+        raise HTTPException(status_code=400, detail="Nickname is required")
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute("""
-        INSERT INTO users (nickname, quiz_starts, created_at, updated_at)
-        VALUES (%s, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ON CONFLICT (nickname) DO UPDATE
-        SET quiz_starts = users.quiz_starts + 1,
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING nickname, quiz_starts
-    """, (nickname,))
-
-    result = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return {
-        "nickname": result["nickname"],
-        "quiz_starts": result["quiz_starts"]
-    }
-
-
-@app.get("/api/quiz/stats/{nickname}")
-def get_user_stats(nickname):
-    """
-    Get quiz statistics for a user
-    Returns: { "nickname": "PlayerName", "quiz_starts": 5 }
-    """
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('''
-            SELECT nickname, quiz_starts FROM users WHERE nickname = %s
-        ''', (nickname,))
-        
+
+        cur.execute("""
+            INSERT INTO users (nickname, quiz_starts, created_at, updated_at)
+            VALUES (%s, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (nickname) DO UPDATE
+            SET quiz_starts = users.quiz_starts + 1,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING nickname, quiz_starts
+        """, (nickname,))
+
+        result = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {
+            "nickname": result["nickname"],
+            "quiz_starts": result["quiz_starts"]
+        }
+
+    except Exception as e:
+        print(f"Error in /api/quiz/start: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/quiz/stats/{nickname}")
+def get_user_stats(nickname: str):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT nickname, quiz_starts
+            FROM users
+            WHERE nickname = %s
+        """, (nickname,))
+
         result = cur.fetchone()
         cur.close()
         conn.close()
-        
-        if result:
-            return {
-                'nickname': result['nickname'],
-                'quiz_starts': result['quiz_starts']
-            }, 200
-        else:
-            return {'error': 'User not found'}, 404
-    
+
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return {
+            "nickname": result["nickname"],
+            "quiz_starts": result["quiz_starts"]
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error in /api/quiz/stats: {e}")
-        return {'error': str(e)}, 500
-
-
-if __name__ == '__main__':
-    init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+        raise HTTPException(status_code=500, detail=str(e))
