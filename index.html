@@ -109,7 +109,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    quizStarts = data.counter;   // FIXED HERE
+                    quizStarts = data.quiz_starts;
                 } else {
                     console.warn('Failed to increment quiz counter');
                     quizStarts = 0;
